@@ -1,10 +1,10 @@
 const mongoose = require("mongoose");
 
-const commentsSchema = new mongoose.Schema({
-  commentsId: {
+const postSchema = new mongoose.Schema({
+  postId: {
     type: Number,
     required: true,
-    unique: true
+    // unique: true
   },
   userName: { 
     type: String,
@@ -15,10 +15,14 @@ const commentsSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  comment: {
+  title: {
+    type: String,
+    required: true
+  },
+  content: {
     type: String,
     required: true
   }
 });
 
-module.exports = mongoose.model("Comments", commentsSchema);
+module.exports = mongoose.model("Post", postSchema);

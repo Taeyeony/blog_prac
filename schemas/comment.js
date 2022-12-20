@@ -1,7 +1,11 @@
 const mongoose = require("mongoose");
 
-const postsSchema = new mongoose.Schema({
-  postsId: {
+const commentSchema = new mongoose.Schema({
+   postId1: {
+     type: Number,
+     required: true,
+   },
+  commentId: {
     type: Number,
     required: true,
     unique: true
@@ -15,14 +19,10 @@ const postsSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  title: {
-    type: String,
-    required: true
-  },
-  content: {
+  comment: {
     type: String,
     required: true
   }
 });
 
-module.exports = mongoose.model("Posts", postsSchema);
+module.exports = mongoose.model("Comment", commentSchema);

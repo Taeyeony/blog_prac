@@ -1,16 +1,16 @@
 const express = require('express');
 const app = express();
-const port = 3000;
+const port = 3001;
 
-const postsRouter = require('./routes/posts');
-const commentsRouter = require('./routes/comments');
+const postRouter = require('./routes/post');
+const commentRouter = require('./routes/comment');
 const connect = require("./schemas");
 
 connect();
 
 
 app.use(express.json());
-app.use("/api", [postsRouter, commentsRouter]);
+app.use("/api", [postRouter, commentRouter]);
 
 
 app.post("/", (req, res) => {
@@ -30,9 +30,6 @@ app.get("/:id", (req, res) => {
 
   res.send(':id URI에 정상적으로 반환하였습니다.');
 })
-
-
-
 
 
 app.listen(port, () => {
