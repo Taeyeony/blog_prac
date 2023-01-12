@@ -1,76 +1,115 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const Post = require("../schemas/post");
+const Post = require('../schemas/post');
 
+// postId값을 받아오는 middleware: 클린코드를 위해 반복 되는 부분을 미들웨어로 정리
+async function getPost(req, res, next) {
+  const { id } = req.params;
+  let post;
+
+  try {
+    post = await Post.findById(id);
+   if (!post) {
+    return res.json({ message: "게시글 조회에 실패하였습니다." });
+    } 
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+  res.post = post;
+  next();
+}
 
 // 게시글 목록 조회
 
-router.get("/post", async (req, res) => {
-  const post = await Post.find({})   //  db에 있는 게시글을 전부다 불러오겠다!!
-  res.status(200).json({post})
+router.get('/', async (req, res) => {
+  try {
+    const post = await Post.find().select(["-password"]); // get 요청시 password만 빼고 불러와짐
+    res.json({ data: post }); // [{}, {}, {}] 배열에 담겨 반환
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+
 });
 
 // 게시글 상세 조회
-router.get("/post/:postId", async (req, res) => {
-  const {postId} = req.params;
-
-   const [detail] = await Post.find({postId: postId});
-  // const detail = await Posts.findById({postsId: postsId});
-
-  res.json({detail});
-})
+router.get('/:id', getPost, async (req, res) => {
+  res.json(res.post);
+});
 
 // 게시글 생성
 
-router.post("/post/", async (req, res) => {
-  const {postId, userName, password, title, content} = req.body;
+router.post('/', async (req, res) => {
+  const { userName, password, title, content } = req.body;
 
-  const post = await Post.find({postId})
-
-  if(post.length) {
-    return res.status(400).json({
-      success: false,
-      errorMessage: '이미 존재하는 PostId입니다.'
-    });
+  try{
+    const createdPost = await Post.create({
+    userName,
+    password,
+    title,
+    content,
+  });
+  res.json({ post: createdPost });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
-
-  const createdPost = await Post.create({postId, userName, password, title, content});
-  res.json({post: createdPost});
-})
+  
+});
 
 // 게시글 수정
-router.put("/post/:postId", async(req, res) => {
-  const postId = req.params
-  const {userName, password, title, content} = req.body // 객체구조분해할당
+// 부분수정이 가능하게 할 때는 patch
+router.patch('/:id', getPost, async (req, res) => {
 
-  const modifyPost = await Post.find({postId})
-  if (modifyPost.length){
-    await Post.updateOne(
-      {postId: postId}, //filter
-      {$set: {userName:userName , password:password, title:title, content:content}} // update
-    )
+  if (!req.body || !id) {   //body값이나  undefined거나 형식이 바르지 않을 때 err 내보내기
+    return res.json({ message: "데이터 형식이 올바르지 않습니다." }); // 다음 코드가 실행되기 전에 코드가 실행돼야 하기 때문에 return 사용
   }
-  res.status(200).json({success:true})
-})
+  const { userName, title, content, password } = req.body;
+  const { post } = res;
+
+  const isPasswordCorrect = post.password === password;   // 입력한 비밀번호가 같을 때 수정 할 수 있게 함
+
+  if (isPasswordCorrect) {    // 입력한 비밀번호가 맞으면 수정
+    if(userName) {
+      post.userName = userName;
+    }
+
+    if(title) {
+      post.title = title;
+    }
+    
+    if(content) {
+      post.content = content;
+    }
+
+    try {
+      const updatedData = await post.save();
+      res.json({ data: updatedData });
+    } catch(err) {
+      res.status(500).json({ message: err.message });
+    }
+  } else {    // 비밀번호가 다르면 에러 메세지
+    res.status(401).json({ message: "비밀번호가 틀렸습니다." });
+  }
+ 
+});
 
 // 게시글 삭제
-router.delete("/post/:postId", async(req, res) => {
-  const {postId} = req.params
+router.delete('/:id', getPost, async (req, res) => {
+  const { password } = req.body;
+  const { post } = res;
 
-  const deletePost = await Post.find({postId})   // 왜 모디파이 포스츠를.. 받아야 삭제가 되는지..? put, delete 함수가 다르기 때문에 변수 이름이 같아도 가능했던 것! 변수 이름을 소중히...
-  if (deletePost.length){
-    await Post.deleteOne({postId})
+  const isPasswordCorrect = post.password === password;
+
+  if (isPasswordCorrect) {
+      try {
+      await post.remove();
+      res.json({ message: "게시글을 삭제했습니다." });
+    } catch (err) {
+      res.status(500).json({ message: err.message });
+    }
+  } else {
+    res.status(401).json({ message: "비밀번호가 틀렸습니다." });
   }
-  res.json({result: "success"})
-})
+
+});
 
 module.exports = router;
-
-
-
-
-
-
-
-
-
